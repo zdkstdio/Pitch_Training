@@ -4,6 +4,8 @@
     <title>PLOYU-Peng's Lab: Pitch Sensitivity Training</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript" src="email-sender.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -381,6 +383,31 @@
         .print-button:active {
             transform: translateY(1px);
         }
+        .email-button {
+            padding: 14px 28px;
+            margin: 20px auto;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            display: block;
+        }
+        .email-button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .email-button:active {
+            transform: translateY(1px);
+        }
+        .email-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
         @media print {
             body {
                 background-color: white;
@@ -541,6 +568,8 @@
             </div>
             
             <button class="print-button" onclick="printResults()">Print Results</button>
+            
+            <button class="email-button" id="emailButton" onclick="sendResultsToEmail()">Send Results to Email</button>
             
             <!-- 新增：在结果页面也显示导出按钮 -->
             <div class="auxiliary-buttons" style="margin-top: 20px;">
@@ -1718,6 +1747,78 @@ function view_onclick() {
     }
     
     displayResults();
+}
+
+function sendResultsToEmail() {
+    const emailButton = document.getElementById('emailButton');
+    emailButton.disabled = true;
+    emailButton.textContent = 'Sending...';
+    
+    // 准备邮件内容
+    const hasHigherData = NumberOfReversals[0] >= MINIMUMREVERSALS;
+    const hasLowerData = NumberOfReversals[1] >= MINIMUMREVERSALS;
+    
+    let emailBody = "Pitch Discrimination Test Results (ABX)\n";
+    emailBody += "High Register Discrimination\n";
+    emailBody += "===========================================\n\n";
+    
+    emailBody += "THRESHOLD RESULTS\n";
+    emailBody += "--------------------------------\n";
+    emailBody += "Higher Direction Threshold: " + (hasHigherData ? sentAverage[0].toFixed(4) : "Insufficient data") + " semitones\n";
+    emailBody += "Higher Direction SD: " + (hasHigherData ? sentStdev[0].toFixed(4) : "N/A") + " semitones\n";
+    emailBody += "Lower Direction Threshold: " + (hasLowerData ? sentAverage[1].toFixed(4) : "Insufficient data") + " semitones\n";
+    emailBody += "Lower Direction SD: " + (hasLowerData ? sentStdev[1].toFixed(4) : "N/A") + " semitones\n";
+    
+    if (hasHigherData && hasLowerData) {
+        const avgThreshold = (sentAverage[0] + sentAverage[1]) / 2;
+        const combinedVariance = (Math.pow(sentStdev[0], 2) + Math.pow(sentStdev[1], 2)) / 2;
+        const combinedSD = Math.sqrt(combinedVariance);
+        emailBody += "Average Threshold: " + avgThreshold.toFixed(4) + " semitones\n";
+        emailBody += "Combined SD: " + combinedSD.toFixed(4) + " semitones\n";
+    }
+    emailBody += "\n";
+    
+    const rtStats = calculateReactionTimeStats();
+    const accuracyStats = calculateAccuracyStats();
+    
+    emailBody += "PERFORMANCE STATISTICS\n";
+    emailBody += "----------------------\n";
+    emailBody += "Overall Accuracy: " + accuracyStats.overall.percentage + "%\n";
+    emailBody += "Higher Direction Accuracy: " + accuracyStats.higher.percentage + "%\n";
+    emailBody += "Lower Direction Accuracy: " + accuracyStats.lower.percentage + "%\n";
+    emailBody += "Mean Reaction Time: " + rtStats.overall.mean + " ms\n";
+    emailBody += "Median Reaction Time: " + rtStats.overall.median + " ms\n";
+    emailBody += "RT Standard Deviation: " + rtStats.overall.sd + " ms\n\n";
+    
+    emailBody += "EXPERIMENT INFO\n";
+    emailBody += "---------------\n";
+    emailBody += "Test Date: " + new Date().toLocaleString() + "\n";
+    emailBody += "Higher Direction Reversals: " + NumberOfReversals[0] + "\n";
+    emailBody += "Lower Direction Reversals: " + NumberOfReversals[1] + "\n";
+    emailBody += "Total Iterations: " + numberOfIterations + "\n";
+    
+    // 使用EmailJS发送邮件
+    emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+        to_email: "jiaxin-lindsy.li@connect.polyu.hk",
+        subject: "Pitch Training Results - High Register Discrimination (ABX)",
+        message: emailBody,
+        test_type: "High Register Discrimination (ABX)",
+        threshold_higher: hasHigherData ? sentAverage[0].toFixed(4) + " semitones" : "N/A",
+        threshold_lower: hasLowerData ? sentAverage[1].toFixed(4) + " semitones" : "N/A",
+        accuracy: accuracyStats.overall.percentage + "%",
+        test_date: new Date().toLocaleString()
+    })
+    .then(function(response) {
+        console.log('Email sent successfully!', response.status, response.text);
+        alert('Results sent successfully to jiaxin-lindsy.li@connect.polyu.hk!');
+        emailButton.disabled = false;
+        emailButton.textContent = 'Send Results to Email';
+    }, function(error) {
+        console.log('Failed to send email:', error);
+        alert('Failed to send email. Error: ' + JSON.stringify(error));
+        emailButton.disabled = false;
+        emailButton.textContent = 'Send Results to Email';
+    });
 }
 
 function exportToCSV() {

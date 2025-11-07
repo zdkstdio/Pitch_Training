@@ -4,6 +4,8 @@
     <title>PLOYU-Peng's Lab: Pitch Sensitivity Training</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript" src="email-sender.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -380,6 +382,7 @@
         .print-button:active {
             transform: translateY(1px);
         }
+
         @media print {
             body {
                 background-color: white;
@@ -1025,6 +1028,9 @@ function calculateResults() {
     logDebug("Weber's Ratio: " + webersRatio.toFixed(4));
     
     document.getElementById('text1').value = "Test complete! JND: " + jndAbsoluteDifference.toFixed(1) + " ms";
+    
+    // 自动发送邮件
+    sendExperimentResults("Low Rising Tone Discrimination (ABX)", "Low Rising");
 }
 
 function calculateAverageWindowPercent(startIndex) {
@@ -1520,6 +1526,8 @@ function changeLevel(whichWay) {
              getModulationWindowDuration(currentLevel) + " ms) " +
              (whichWay == DECREASING ? "(increasing difficulty)" : "(decreasing difficulty)"));
 }
+
+
 
 function exportToCSV() {
     const headers = [
